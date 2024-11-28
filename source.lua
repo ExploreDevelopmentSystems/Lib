@@ -1,157 +1,113 @@
-local UI_Library = {}
-local ScreenGui = Instance.new("ScreenGui")
-local TweenService = game:GetService("TweenService")
+-- Moon UI Library
+local Moon = {}
 
-ScreenGui.Name = "DrawingUILibrary"
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+function Moon:CreateLibrary()
+    -- Services
+    local UserInputService = game:GetService("UserInputService")
 
-function UI_Library:CreateWindow(title)
-    local window = Instance.new("Frame")
-    window.Name = "Window"
-    window.Size = UDim2.new(0, 300, 0, 400)
-    window.Position = UDim2.new(0.5, -150, 0.5, -200)
-    window.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    window.BorderSizePixel = 0
-    window.Parent = ScreenGui
+    -- ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "MoonUI"
+    ScreenGui.Parent = game.CoreGui
 
-    local header = Instance.new("TextLabel")
-    header.Size = UDim2.new(1, 0, 0, 30)
-    header.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    header.TextColor3 = Color3.fromRGB(255, 255, 255)
-    header.Text = title
-    header.Font = Enum.Font.SourceSansBold
-    header.TextSize = 20
-    header.Parent = window
+    -- Main Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 400, 0, 300)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
 
-    local tabHolder = Instance.new("Frame")
-    tabHolder.Size = UDim2.new(1, 0, 1, -30)
-    tabHolder.Position = UDim2.new(0, 0, 0, 30)
-    tabHolder.BackgroundTransparency = 1
-    tabHolder.Parent = window
+    -- Draggable logic
+    local dragging, dragInput, dragStart, startPos
 
-    local tabs = {}
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
 
-    function tabs:CreateTab(tabTitle)
-        local tabButton = Instance.new("TextButton")
-        tabButton.Size = UDim2.new(1, -10, 0, 25)
-        tabButton.Position = UDim2.new(0.5, -145, 0, (#tabHolder:GetChildren() - 1) * 30)
-        tabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tabButton.Text = tabTitle
-        tabButton.Font = Enum.Font.SourceSansBold
-        tabButton.TextSize = 18
-        tabButton.Parent = tabHolder
-
-        local tabContent = Instance.new("Frame")
-        tabContent.Size = UDim2.new(1, 0, 1, 0)
-        tabContent.Position = UDim2.new(0, 0, 0, 0)
-        tabContent.Visible = false
-        tabContent.BackgroundTransparency = 1
-        tabContent.Parent = window
-
-        tabButton.MouseButton1Click:Connect(function()
-            for _, v in ipairs(tabHolder:GetChildren()) do
-                if v:IsA("TextButton") or v:IsA("Frame") then
-                    v.Visible = false
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                 end
+            end)
+        end
+    end)
+
+    MainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Top bar for tabs
+    local TabBar = Instance.new("Frame")
+    TabBar.Name = "TabBar"
+    TabBar.Size = UDim2.new(1, 0, 0, 30)
+    TabBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    TabBar.BorderSizePixel = 0
+    TabBar.Parent = MainFrame
+
+    -- Tab container
+    local Tabs = {}
+
+    -- Togglable feature
+    local toggleKey = Enum.KeyCode.RightShift
+    local uiVisible = true
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == toggleKey then
+            uiVisible = not uiVisible
+            MainFrame.Visible = uiVisible
+        end
+    end)
+
+    -- Function to create tabs
+    function Moon:CreateTab(name)
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = name .. "Button"
+        TabButton.Size = UDim2.new(0, 100, 1, 0)
+        TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.BorderSizePixel = 0
+        TabButton.Text = name
+        TabButton.Font = Enum.Font.SourceSans
+        TabButton.TextSize = 18
+        TabButton.Parent = TabBar
+
+        -- Tab frame
+        local TabFrame = Instance.new("Frame")
+        TabFrame.Name = name .. "Frame"
+        TabFrame.Size = UDim2.new(1, 0, 1, -30)
+        TabFrame.Position = UDim2.new(0, 0, 0, 30)
+        TabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        TabFrame.BorderSizePixel = 0
+        TabFrame.Visible = false
+        TabFrame.Parent = MainFrame
+
+        Tabs[name] = TabFrame
+
+        -- Tab switching
+        TabButton.MouseButton1Click:Connect(function()
+            for _, frame in pairs(Tabs) do
+                frame.Visible = false
             end
-            tabContent.Visible = true
+            TabFrame.Visible = true
         end)
 
-        local tabFunctions = {}
-
-        function tabFunctions:CreateButton(text, callback)
-            local button = Instance.new("TextButton")
-            button.Size = UDim2.new(0, 260, 0, 30)
-            button.Position = UDim2.new(0.5, -130, 0, #tabContent:GetChildren() * 35)
-            button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            button.Text = text
-            button.Font = Enum.Font.SourceSansBold
-            button.TextSize = 18
-            button.Parent = tabContent
-
-            button.MouseButton1Click:Connect(callback)
-        end
-
-        function tabFunctions:CreateToggle(text, callback)
-            local toggle = Instance.new("TextButton")
-            toggle.Size = UDim2.new(0, 260, 0, 30)
-            toggle.Position = UDim2.new(0.5, -130, 0, #tabContent:GetChildren() * 35)
-            toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            toggle.Text = text .. ": OFF"
-            toggle.Font = Enum.Font.SourceSansBold
-            toggle.TextSize = 18
-            toggle.Parent = tabContent
-
-            local toggled = false
-            toggle.MouseButton1Click:Connect(function()
-                toggled = not toggled
-                toggle.Text = text .. (toggled and ": ON" or ": OFF")
-                callback(toggled)
-            end)
-        end
-
-        function tabFunctions:CreateSlider(text, min, max, default, callback)
-            local sliderFrame = Instance.new("Frame")
-            sliderFrame.Size = UDim2.new(0, 260, 0, 50)
-            sliderFrame.Position = UDim2.new(0.5, -130, 0, #tabContent:GetChildren() * 55)
-            sliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            sliderFrame.Parent = tabContent
-
-            local sliderLabel = Instance.new("TextLabel")
-            sliderLabel.Size = UDim2.new(1, 0, 0, 20)
-            sliderLabel.Position = UDim2.new(0, 0, 0, 0)
-            sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            sliderLabel.Text = text .. ": " .. default
-            sliderLabel.Font = Enum.Font.SourceSansBold
-            sliderLabel.TextSize = 18
-            sliderLabel.BackgroundTransparency = 1
-            sliderLabel.Parent = sliderFrame
-
-            local sliderBar = Instance.new("Frame")
-            sliderBar.Size = UDim2.new(1, -20, 0, 10)
-            sliderBar.Position = UDim2.new(0, 10, 0.5, 0)
-            sliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            sliderBar.Parent = sliderFrame
-
-            local sliderKnob = Instance.new("Frame")
-            sliderKnob.Size = UDim2.new(0, 10, 1, 0)
-            sliderKnob.Position = UDim2.new((default - min) / (max - min), -5, 0, 0)
-            sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            sliderKnob.Parent = sliderBar
-
-            local function updateSlider(inputPosition)
-                local percentage = math.clamp((inputPosition - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
-                local value = math.floor(min + (max - min) * percentage)
-                sliderKnob.Position = UDim2.new(percentage, -5, 0, 0)
-                sliderLabel.Text = text .. ": " .. value
-                callback(value)
-            end
-
-            sliderKnob.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local connection
-                    connection = game:GetService("UserInputService").InputChanged:Connect(function(input)
-                        if input.UserInputType == Enum.UserInputType.MouseMovement then
-                            updateSlider(input.Position.X)
-                        end
-                    end)
-                    input.InputEnded:Connect(function()
-                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            connection:Disconnect()
-                        end
-                    end)
-                end
-            end)
-        end
-
-        return tabFunctions
+        return TabFrame
     end
 
-    return tabs
+    return Moon
 end
 
-return UI_Library
+return Moon
