@@ -1,113 +1,81 @@
--- Moon UI Library
+-- Moon Library
 local Moon = {}
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
-function Moon:CreateLibrary()
-    -- Services
-    local UserInputService = game:GetService("UserInputService")
-
-    -- ScreenGui
+-- Create main UI
+function Moon:CreateUI(title)
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "MoonUI"
-    ScreenGui.Parent = game.CoreGui
-
-    -- Main Frame
     local MainFrame = Instance.new("Frame")
+    local TopBar = Instance.new("Frame")
+    local Title = Instance.new("TextLabel")
+    local TabsHolder = Instance.new("Frame")
+    
+    -- ScreenGui setup
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.Name = "MoonUI"
+    
+    -- MainFrame setup
     MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     MainFrame.Size = UDim2.new(0, 400, 0, 300)
     MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = ScreenGui
+    MainFrame.Active = true
+    MainFrame.Draggable = true
 
-    -- Draggable logic
-    local dragging, dragInput, dragStart, startPos
+    -- TopBar setup
+    TopBar.Name = "TopBar"
+    TopBar.Parent = MainFrame
+    TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    TopBar.Size = UDim2.new(1, 0, 0, 30)
 
-    MainFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
+    -- Title setup
+    Title.Name = "Title"
+    Title.Parent = TopBar
+    Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, -10, 1, 0)
+    Title.Position = UDim2.new(0, 5, 0, 0)
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 18
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Text = title or "Moon UI"
 
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
+    -- TabsHolder setup
+    TabsHolder.Name = "TabsHolder"
+    TabsHolder.Parent = MainFrame
+    TabsHolder.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    TabsHolder.Size = UDim2.new(1, 0, 0, 30)
+    TabsHolder.Position = UDim2.new(0, 0, 0, 30)
+    
+    return {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        TopBar = TopBar,
+        TabsHolder = TabsHolder
+    }
+end
 
-    MainFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
+-- Add a tab
+function Moon:AddTab(ui, name)
+    local TabButton = Instance.new("TextButton")
 
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
+    TabButton.Name = name
+    TabButton.Parent = ui.TabsHolder
+    TabButton.Text = name
+    TabButton.Font = Enum.Font.SourceSansBold
+    TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabButton.Size = UDim2.new(0, 80, 1, 0)
+    TabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    TabButton.BorderSizePixel = 0
 
-    -- Top bar for tabs
-    local TabBar = Instance.new("Frame")
-    TabBar.Name = "TabBar"
-    TabBar.Size = UDim2.new(1, 0, 0, 30)
-    TabBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    TabBar.BorderSizePixel = 0
-    TabBar.Parent = MainFrame
+    return TabButton
+end
 
-    -- Tab container
-    local Tabs = {}
-
-    -- Togglable feature
-    local toggleKey = Enum.KeyCode.RightShift
-    local uiVisible = true
-
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == toggleKey then
-            uiVisible = not uiVisible
-            MainFrame.Visible = uiVisible
-        end
-    end)
-
-    -- Function to create tabs
-    function Moon:CreateTab(name)
-        local TabButton = Instance.new("TextButton")
-        TabButton.Name = name .. "Button"
-        TabButton.Size = UDim2.new(0, 100, 1, 0)
-        TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        TabButton.BorderSizePixel = 0
-        TabButton.Text = name
-        TabButton.Font = Enum.Font.SourceSans
-        TabButton.TextSize = 18
-        TabButton.Parent = TabBar
-
-        -- Tab frame
-        local TabFrame = Instance.new("Frame")
-        TabFrame.Name = name .. "Frame"
-        TabFrame.Size = UDim2.new(1, 0, 1, -30)
-        TabFrame.Position = UDim2.new(0, 0, 0, 30)
-        TabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        TabFrame.BorderSizePixel = 0
-        TabFrame.Visible = false
-        TabFrame.Parent = MainFrame
-
-        Tabs[name] = TabFrame
-
-        -- Tab switching
-        TabButton.MouseButton1Click:Connect(function()
-            for _, frame in pairs(Tabs) do
-                frame.Visible = false
-            end
-            TabFrame.Visible = true
-        end)
-
-        return TabFrame
-    end
-
-    return Moon
+-- Toggling visibility
+function Moon:ToggleUI(ui)
+    ui.MainFrame.Visible = not ui.MainFrame.Visible
 end
 
 return Moon
